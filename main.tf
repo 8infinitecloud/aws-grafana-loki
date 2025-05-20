@@ -202,7 +202,7 @@ module "ecs_service" {
   source = "terraform-aws-modules/ecs/aws//modules/service"
 
   name        = local.name
-  cluster_arn = module.ecs_cluster.arn
+  cluster_arn = "arn:aws:ecs:us-east-1:536697236057:cluster/amg-ex-aws-grafana-loki" #module.ecs_cluster.arn
 
   cpu    = 1024
   memory = 4096
@@ -213,23 +213,11 @@ module "ecs_service" {
   # Container definition(s)
   container_definitions = {
 
-    fluent-bit = {
-      cpu       = 512
-      memory    = 1024
-      essential = true
-      image     = nonsensitive(data.aws_ssm_parameter.fluentbit.value)
-      firelens_configuration = {
-        type = "fluentbit"
-      }
-      memory_reservation = 50
-      user               = "0"
-    }
-
     (local.container_name) = {
       cpu       = 512
       memory    = 1024
       essential = true
-      image     = "public.ecr.aws/aws-containers/ecsdemo-frontend:776fd50"
+      image     = "public.ecr.aws/bitnami/grafana-loki:3.5.0"
       port_mappings = [
         {
           name          = local.container_name
@@ -241,11 +229,6 @@ module "ecs_service" {
 
       # Example image used requires access to write to root filesystem
       readonly_root_filesystem = false
-
-      dependencies = [{
-        containerName = "fluent-bit"
-        condition     = "START"
-      }]
 
       enable_cloudwatch_logging = false
       log_configuration = {
@@ -266,12 +249,6 @@ module "ecs_service" {
           ]
         }
       }
-
-      # Not required for fluent-bit, just an example
-      volumes_from = [{
-        sourceContainer = "fluent-bit"
-        readOnly        = false
-      }]
 
       memory_reservation = 100
     }
@@ -334,7 +311,7 @@ module "ecs_task_definition" {
 
   # Service
   name           = "${local.name}-standalone"
-  cluster_arn    = module.ecs_cluster.arn
+  cluster_arn    = "arn:aws:ecs:us-east-1:536697236057:cluster/amg-ex-aws-grafana-loki" #module.ecs_cluster.arn
   create_service = false
 
   # Task Definition
