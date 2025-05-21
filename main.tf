@@ -18,3 +18,12 @@ module "vpc" {
 
   tags = local.tags
 }
+
+
+module "simple_bucket" {
+  source = "terraform-aws-modules/s3-bucket/aws"
+
+  bucket = "simple-bucket987654321"
+
+  force_destroy = true
+}

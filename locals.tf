@@ -68,6 +68,53 @@ locals {
     systemctl daemon-reload
     systemctl enable wildfly
     systemctl start wildfly
+
+    # Configurar repositorio de Fluent Bit
+    cat <<EOF > /etc/yum.repos.d/fluent-bit.repo
+    [fluent-bit]
+    name=Fluent Bit
+    baseurl=https://packages.fluentbit.io/amazonlinux/2023/
+    gpgcheck=1
+    gpgkey=https://packages.fluentbit.io/fluentbit.key
+    enabled=1
+    EOF
+
+    # Instalar Fluent Bit
+    dnf install -y fluent-bit
+
+    # Crear archivo de configuración para Fluent Bit
+    mkdir -p /etc/fluent-bit/
+    cat <<EOF > /etc/fluent-bit/fluent-bit.conf
+    [SERVICE]
+        Flush        5
+        Daemon       Off
+        Log_Level    info
+        Parsers_File parsers.conf
+
+    [INPUT]
+        Name         tail
+        Path         /opt/wildfly/standalone/log/server.log
+        Tag          wildfly
+        Refresh_Interval 5
+        Read_from_Head true
+
+    [OUTPUT]
+        Name         s3
+        Match        wildfly
+        bucket       simple-bucket987654321
+        region       us-east-1
+        total_file_size 5M
+        upload_timeout 10m
+        store_dir    /var/log/fluent-bit/s3
+    EOF
+
+    # Crear directorio para almacenamiento temporal de logs
+    mkdir -p /var/log/fluent-bit/s3
+
+    # Iniciar y habilitar Fluent Bit
+    systemctl enable fluent-bit
+    systemctl start fluent-bit
+
   EOT
 
 
